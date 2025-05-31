@@ -1,0 +1,26 @@
+name: 📖 ドキュメント
+description: ドキュメントの追加・修正
+title: "📖 "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ドキュメントの追加・修正を記録します。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 詳細
+      description: ドキュメントの内容、修正箇所など
+      placeholder: |
+        ## 対象ドキュメント
+        README、API文書、セットアップ手順など
+
+        ## 追加・修正内容
+        何を追加・修正するか
+
+        ## 理由
+        なぜ必要か
+    validations:
+      required: true

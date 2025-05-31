@@ -1,11 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface Post {
   id: number;
@@ -23,6 +22,18 @@ interface PostCardProps {
 }
 
 export function PostCard({ post }: PostCardProps) {
+  const [formattedDate, setFormattedDate] = useState<string>('');
+
+  useEffect(() => {
+    setFormattedDate(
+      new Date(post.published_at).toLocaleDateString('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      })
+    );
+  }, [post.published_at]);
+
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden">
       <Link href={`/posts/${post.slug}`} className="block">
@@ -65,13 +76,13 @@ export function PostCard({ post }: PostCardProps) {
           {/* メタ情報 */}
           <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
             <div className="flex items-center gap-1">
-              <User className="h-3 w-3" />
+              <User className="h-3 w-3" suppressHydrationWarning />
               <span>{post.user.username}</span>
             </div>
             <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              <time dateTime={post.published_at}>
-                {format(new Date(post.published_at), 'yyyy年MM月dd日', { locale: ja })}
+              <Clock className="h-3 w-3" suppressHydrationWarning />
+              <time dateTime={post.published_at} suppressHydrationWarning>
+                {formattedDate}
               </time>
             </div>
           </div>
