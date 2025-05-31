@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/auth-store";
-import { FileText, Tags, FolderOpen, LogOut } from "lucide-react";
+import { FileText, Tags, FolderOpen, LogOut, User } from "lucide-react";
 
 export function AdminHeader() {
   const router = useRouter();
@@ -51,6 +51,12 @@ export function AdminHeader() {
               {user.username}
             </span>
           )}
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/admin/profile">
+              <User className="mr-2 h-4 w-4" />
+              プロフィール
+            </Link>
+          </Button>
           <Button
             variant="ghost"
             size="sm"
