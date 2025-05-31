@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.api.deps import get_current_user
 from app.schemas.post import Post, PostCreate, PostUpdate, PostList
-from app.schemas.category import Category, CategoryCreate
-from app.schemas.tag import Tag, TagCreate
+from app.schemas.category import Category, CategoryCreate, CategoryUpdate
+from app.schemas.tag import Tag, TagCreate, TagUpdate
 from app.models import post as post_model, category as category_model, tag as tag_model, user as user_model
 from app.models.post import PostStatus
 import os
@@ -185,6 +185,114 @@ def create_category(
     return category
 
 
+@router.get("/categories", response_model=List[Category])
+def get_all_categories(
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    categories = db.query(category_model.Category).order_by(
+        category_model.Category.name
+    ).all()
+    return categories
+
+
+@router.get("/categories/{category_id}", response_model=Category)
+def get_category(
+    category_id: int,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    category = db.query(category_model.Category).filter(
+        category_model.Category.id == category_id
+    ).first()
+    
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found"
+        )
+    
+    return category
+
+
+@router.put("/categories/{category_id}", response_model=Category)
+def update_category(
+    category_id: int,
+    category_in: CategoryUpdate,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    category = db.query(category_model.Category).filter(
+        category_model.Category.id == category_id
+    ).first()
+    
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found"
+        )
+    
+    # Check for duplicate name/slug if they are being updated
+    update_data = category_in.model_dump(exclude_unset=True)
+    if update_data:
+        existing = db.query(category_model.Category).filter(
+            category_model.Category.id != category_id
+        )
+        
+        if "name" in update_data:
+            existing = existing.filter(category_model.Category.name == update_data["name"])
+        elif "slug" in update_data:
+            existing = existing.filter(category_model.Category.slug == update_data["slug"])
+        
+        if existing.first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Category with this name or slug already exists"
+            )
+    
+    # Update fields
+    for field, value in update_data.items():
+        setattr(category, field, value)
+    
+    db.commit()
+    db.refresh(category)
+    
+    return category
+
+
+@router.delete("/categories/{category_id}")
+def delete_category(
+    category_id: int,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    category = db.query(category_model.Category).filter(
+        category_model.Category.id == category_id
+    ).first()
+    
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found"
+        )
+    
+    # Check if category is used in any posts
+    posts_count = db.query(post_model.Post).filter(
+        post_model.Post.categories.any(category_model.Category.id == category_id)
+    ).count()
+    
+    if posts_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete category. It is used in {posts_count} post(s)."
+        )
+    
+    db.delete(category)
+    db.commit()
+    
+    return {"message": "Category deleted successfully"}
+
+
 # Tags
 @router.post("/tags", response_model=Tag)
 def create_tag(
@@ -210,6 +318,114 @@ def create_tag(
     db.refresh(tag)
     
     return tag
+
+
+@router.get("/tags", response_model=List[Tag])
+def get_all_tags(
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    tags = db.query(tag_model.Tag).order_by(
+        tag_model.Tag.name
+    ).all()
+    return tags
+
+
+@router.get("/tags/{tag_id}", response_model=Tag)
+def get_tag(
+    tag_id: int,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    tag = db.query(tag_model.Tag).filter(
+        tag_model.Tag.id == tag_id
+    ).first()
+    
+    if not tag:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tag not found"
+        )
+    
+    return tag
+
+
+@router.put("/tags/{tag_id}", response_model=Tag)
+def update_tag(
+    tag_id: int,
+    tag_in: TagUpdate,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    tag = db.query(tag_model.Tag).filter(
+        tag_model.Tag.id == tag_id
+    ).first()
+    
+    if not tag:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tag not found"
+        )
+    
+    # Check for duplicate name/slug if they are being updated
+    update_data = tag_in.model_dump(exclude_unset=True)
+    if update_data:
+        existing = db.query(tag_model.Tag).filter(
+            tag_model.Tag.id != tag_id
+        )
+        
+        if "name" in update_data:
+            existing = existing.filter(tag_model.Tag.name == update_data["name"])
+        elif "slug" in update_data:
+            existing = existing.filter(tag_model.Tag.slug == update_data["slug"])
+        
+        if existing.first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tag with this name or slug already exists"
+            )
+    
+    # Update fields
+    for field, value in update_data.items():
+        setattr(tag, field, value)
+    
+    db.commit()
+    db.refresh(tag)
+    
+    return tag
+
+
+@router.delete("/tags/{tag_id}")
+def delete_tag(
+    tag_id: int,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    tag = db.query(tag_model.Tag).filter(
+        tag_model.Tag.id == tag_id
+    ).first()
+    
+    if not tag:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tag not found"
+        )
+    
+    # Check if tag is used in any posts
+    posts_count = db.query(post_model.Post).filter(
+        post_model.Post.tags.any(tag_model.Tag.id == tag_id)
+    ).count()
+    
+    if posts_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete tag. It is used in {posts_count} post(s)."
+        )
+    
+    db.delete(tag)
+    db.commit()
+    
+    return {"message": "Tag deleted successfully"}
 
 
 # File upload
