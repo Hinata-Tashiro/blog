@@ -6,7 +6,8 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { posts, getImageUrl } from "@/lib/api";
+import { posts } from "@/lib/api";
+import { getThumbnailUrl } from "@/lib/config";
 import { useSearchParams } from "next/navigation";
 
 interface Post {
@@ -76,51 +77,83 @@ function PostListContent() {
   return (
     <div className="space-y-6">
       {postData.posts.map((post) => (
-        <Card key={post.id} className="hover:shadow-lg transition-shadow overflow-hidden">
-          {post.featured_image && (
-            <div className="aspect-video relative bg-muted">
-              <img
-                src={getImageUrl(post.featured_image.filename)}
-                alt={post.featured_image.alt_text || post.title}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-          )}
-          <CardHeader>
-            <CardTitle>
-              <Link 
-                href={`/posts/${post.slug}`}
-                className="hover:text-primary transition-colors"
-              >
-                {post.title}
-              </Link>
-            </CardTitle>
-            <CardDescription>
-              {format(new Date(post.published_at), "yyyy年MM月dd日", { locale: ja })}
-              {post.categories.length > 0 && (
-                <span className="ml-4">
-                  カテゴリ: {post.categories.map(cat => cat.name).join(", ")}
-                </span>
-              )}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground line-clamp-3">{post.excerpt}</p>
-            {post.tags.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {post.tags.map((tag) => (
-                  <Link
-                    key={tag.id}
-                    href={`/?tag=${tag.slug}`}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    #{tag.name}
-                  </Link>
-                ))}
+        <Card key={post.id} className="hover:shadow-lg transition-all duration-300 overflow-hidden group">
+          <Link href={`/posts/${post.slug}`} className="block">
+            <div className="grid md:grid-cols-3 gap-0">
+              {/* アイキャッチ画像セクション */}
+              <div className="md:col-span-1 relative bg-muted">
+                {post.featured_image ? (
+                  <div className="aspect-video md:aspect-square h-full relative overflow-hidden">
+                    <img
+                      src={getThumbnailUrl(post.featured_image.filename, 'large')}
+                      alt={post.featured_image.alt_text || post.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-video md:aspect-square h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-primary/20 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-primary/60">
+                          {post.title.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">No Image</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </CardContent>
+
+              {/* コンテンツセクション */}
+              <div className="md:col-span-2 p-6 flex flex-col">
+                <div className="flex-1">
+                  {/* カテゴリ */}
+                  {post.categories.length > 0 && (
+                    <div className="mb-2">
+                      <span className="inline-block text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
+                        {post.categories[0].name}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* タイトル */}
+                  <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                    {post.title}
+                  </h3>
+
+                  {/* 日付と著者 */}
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                    <time dateTime={post.published_at}>
+                      {format(new Date(post.published_at), "yyyy年MM月dd日", { locale: ja })}
+                    </time>
+                  </div>
+
+                  {/* 概要 */}
+                  <p className="text-muted-foreground line-clamp-2 mb-4">{post.excerpt}</p>
+                </div>
+
+                {/* タグ */}
+                {post.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-auto">
+                    {post.tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="text-xs bg-secondary/50 hover:bg-secondary px-2 py-1 rounded transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          window.location.href = `/?tag=${tag.slug}`;
+                        }}
+                      >
+                        #{tag.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Link>
         </Card>
       ))}
 

@@ -21,6 +21,14 @@ const nextConfig = {
     ],
     unoptimized: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: 'http://localhost/uploads/:path*',
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig

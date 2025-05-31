@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
+import io
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -514,15 +515,60 @@ async def upload_image(
     
     # Save file
     file_path = os.path.join(upload_dir, unique_filename)
-    with open(file_path, "wb") as buffer:
-        buffer.write(content)
     
-    # Get image dimensions using Pillow
+    # Process image with Pillow for optimization and thumbnail creation
     try:
-        with PILImage.open(file_path) as img:
+        # Open and process the image
+        with PILImage.open(io.BytesIO(content)) as img:
+            # Convert RGBA to RGB if necessary (for JPEG compatibility)
+            if img.mode in ('RGBA', 'LA', 'P'):
+                # Create a white background
+                rgb_img = PILImage.new('RGB', img.size, (255, 255, 255))
+                # Paste the image on the white background
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                rgb_img.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                img = rgb_img
+            
+            # Get original dimensions
             width, height = img.size
-    except Exception:
-        width = height = None
+            
+            # Save optimized original image
+            img.save(file_path, quality=85, optimize=True)
+            
+            # Create thumbnail directory
+            thumb_dir = os.path.join(upload_dir, "thumbnails")
+            os.makedirs(thumb_dir, exist_ok=True)
+            
+            # Generate thumbnails
+            thumbnail_sizes = {
+                'small': (150, 150),
+                'medium': (300, 300),
+                'large': (800, 800)
+            }
+            
+            for size_name, (max_width, max_height) in thumbnail_sizes.items():
+                # Create a copy for thumbnail
+                thumb_img = img.copy()
+                
+                # Calculate thumbnail size maintaining aspect ratio
+                thumb_img.thumbnail((max_width, max_height), PILImage.Resampling.LANCZOS)
+                
+                # Save thumbnail
+                thumb_filename = f"{os.path.splitext(unique_filename)[0]}_{size_name}{file_extension}"
+                thumb_path = os.path.join(thumb_dir, thumb_filename)
+                thumb_img.save(thumb_path, quality=85, optimize=True)
+                
+    except Exception as e:
+        # If image processing fails, save the original file
+        with open(file_path, "wb") as buffer:
+            buffer.write(content)
+        # Try to get dimensions from the saved file
+        try:
+            with PILImage.open(file_path) as img:
+                width, height = img.size
+        except Exception:
+            width = height = None
     
     # Generate alt text from filename if not provided
     if not alt_text and file.filename:
