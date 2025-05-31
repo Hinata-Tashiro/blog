@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
+import { Multiselect, MultiselectOption } from "@/components/ui/multiselect";
 import { admin, categories as categoriesApi, tags as tagsApi } from "@/lib/api";
 import { Save, Eye, Upload } from "lucide-react";
 
@@ -202,9 +203,16 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
 
           <div className="space-y-2">
             <Label htmlFor="tags">タグ</Label>
-            <div className="text-sm text-muted-foreground">
-              複数選択機能は後日実装予定
-            </div>
+            <Multiselect
+              options={tags.map((tag): MultiselectOption => ({
+                label: tag.name,
+                value: tag.id.toString()
+              }))}
+              value={watch("tag_ids").map(id => id.toString())}
+              onChange={(values) => setValue("tag_ids", values.map(v => parseInt(v)))}
+              placeholder="タグを選択"
+              disabled={isLoading}
+            />
           </div>
         </div>
 
