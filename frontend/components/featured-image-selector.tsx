@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { admin, getImageUrl } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 import { Image as ImageIcon, Search, X, Upload } from "lucide-react";
 import {
   Dialog,
@@ -136,6 +137,7 @@ export function FeaturedImageSelector({
                       setSearchQuery={setSearchQuery}
                       onImageClick={handleImageClick}
                       isLoading={isLoading}
+                      onImageUploaded={fetchImages}
                     />
                   </Dialog>
                   
@@ -190,6 +192,7 @@ export function FeaturedImageSelector({
             setSearchQuery={setSearchQuery}
             onImageClick={handleImageClick}
             isLoading={isLoading}
+            onImageUploaded={fetchImages}
           />
         </Dialog>
       )}
@@ -202,32 +205,90 @@ function ImageSelectorDialog({
   searchQuery,
   setSearchQuery,
   onImageClick,
-  isLoading
+  isLoading,
+  onImageUploaded
 }: {
   images: Image[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onImageClick: (image: Image, e?: React.MouseEvent) => void;
   isLoading: boolean;
+  onImageUploaded?: () => void;
 }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const altText = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+      await admin.images.upload(file, altText);
+      
+      toast({
+        title: "アップロード完了",
+        description: "画像をアップロードしました",
+      });
+      
+      // Clear the input
+      e.target.value = '';
+      
+      // Refresh the image list
+      if (onImageUploaded) {
+        onImageUploaded();
+      }
+    } catch (error) {
+      toast({
+        title: "エラー",
+        description: "画像のアップロードに失敗しました",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
       <DialogHeader>
         <DialogTitle>アイキャッチ画像を選択</DialogTitle>
         <DialogDescription>
-          使用する画像をクリックして選択してください
+          使用する画像をクリックして選択するか、新しい画像をアップロードしてください
         </DialogDescription>
       </DialogHeader>
       
       <div className="space-y-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="画像を検索..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="画像を検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <div className="relative">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isUploading}
+              onClick={() => document.getElementById('dialog-image-upload')?.click()}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isUploading ? 'アップロード中...' : '新しい画像'}
+            </Button>
+            <input
+              id="dialog-image-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+          </div>
         </div>
         
         <div className="overflow-y-auto max-h-96">

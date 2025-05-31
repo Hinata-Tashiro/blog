@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { Multiselect, MultiselectOption } from "@/components/ui/multiselect";
 import { FeaturedImageSelector } from "@/components/featured-image-selector";
+import { ImageGalleryDialog } from "@/components/image-gallery-dialog";
 import { admin, categories as categoriesApi, tags as tagsApi } from "@/lib/api";
 import { Save, Eye, Upload, ImagePlus } from "lucide-react";
 
@@ -149,6 +150,11 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
     }
   };
 
+  const handleImageInsert = (imageUrl: string, altText: string) => {
+    const currentContent = watch("content");
+    setValue("content", `${currentContent}\n\n![${altText}](${imageUrl})\n`);
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -276,6 +282,19 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
           <div className="flex items-center justify-between">
             <Label>本文</Label>
             <div className="flex gap-2">
+              <ImageGalleryDialog 
+                onImageSelect={handleImageInsert}
+                trigger={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                  >
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                    画像を挿入
+                  </Button>
+                }
+              />
               <Button
                 type="button"
                 variant="outline"
@@ -283,7 +302,7 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
                 onClick={() => document.getElementById("image-upload")?.click()}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                画像
+                ファイルから
               </Button>
               <input
                 id="image-upload"
