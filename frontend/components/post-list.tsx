@@ -17,6 +17,13 @@ interface Post {
   published_at: string;
   categories: Array<{ id: number; name: string; slug: string }>;
   tags: Array<{ id: number; name: string; slug: string }>;
+  featured_image?: {
+    id: number;
+    filename: string;
+    alt_text?: string;
+    width?: number;
+    height?: number;
+  };
 }
 
 interface PostListResponse {
@@ -69,7 +76,17 @@ function PostListContent() {
   return (
     <div className="space-y-6">
       {postData.posts.map((post) => (
-        <Card key={post.id} className="hover:shadow-lg transition-shadow">
+        <Card key={post.id} className="hover:shadow-lg transition-shadow overflow-hidden">
+          {post.featured_image && (
+            <div className="aspect-video relative bg-muted">
+              <img
+                src={`/uploads/images/${post.featured_image.filename}`}
+                alt={post.featured_image.alt_text || post.title}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          )}
           <CardHeader>
             <CardTitle>
               <Link 
