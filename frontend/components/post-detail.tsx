@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/header";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { getImageUrl } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 interface Post {
@@ -15,6 +16,14 @@ interface Post {
   categories: Array<{ id: number; name: string; slug: string }>;
   tags: Array<{ id: number; name: string; slug: string }>;
   user: { username: string };
+  featured_image?: {
+    id: number;
+    filename: string;
+    alt_text?: string;
+    caption?: string;
+    width?: number;
+    height?: number;
+  };
 }
 
 interface PostDetailProps {
@@ -51,6 +60,22 @@ export function PostDetail({ post }: PostDetailProps) {
           </Button>
 
           <article className="bg-card rounded-lg shadow-sm border overflow-hidden">
+            {/* アイキャッチ画像 */}
+            {post.featured_image && (
+              <div className="aspect-video relative bg-muted">
+                <img
+                  src={getImageUrl(post.featured_image.filename)}
+                  alt={post.featured_image.alt_text || post.title}
+                  className="w-full h-full object-cover"
+                />
+                {post.featured_image.caption && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                    <p className="text-white text-sm">{post.featured_image.caption}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ヘッダー部分 */}
             <header className="p-8 border-b bg-gradient-to-r from-background to-secondary/20">
               {/* カテゴリバッジ */}

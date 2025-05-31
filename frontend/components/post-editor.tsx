@@ -13,8 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { Multiselect, MultiselectOption } from "@/components/ui/multiselect";
+import { FeaturedImageSelector } from "@/components/featured-image-selector";
+import { ImageGalleryDialog } from "@/components/image-gallery-dialog";
 import { admin, categories as categoriesApi, tags as tagsApi } from "@/lib/api";
-import { Save, Eye, Upload } from "lucide-react";
+import { Save, Eye, Upload, ImagePlus } from "lucide-react";
 
 const postSchema = z.object({
   title: z.string().min(1, "タイトルを入力してください"),
@@ -24,6 +26,7 @@ const postSchema = z.object({
   status: z.enum(["draft", "published"]),
   category_ids: z.array(z.number()),
   tag_ids: z.array(z.number()),
+  featured_image_id: z.number().optional(),
 });
 
 type PostFormData = z.infer<typeof postSchema>;
@@ -38,6 +41,7 @@ interface PostEditorProps {
     status: "draft" | "published";
     categories: Array<{ id: number }>;
     tags: Array<{ id: number }>;
+    featured_image_id?: number;
   };
   onSave: (data: PostFormData, isPublish?: boolean) => Promise<void>;
 }
@@ -48,6 +52,7 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
   const [categories, setCategories] = useState<Array<{ id: number; name: string }>>([]);
   const [tags, setTags] = useState<Array<{ id: number; name: string }>>([]);
   const [selectedTab, setSelectedTab] = useState("editor");
+  const [isDragging, setIsDragging] = useState(false);
 
   const {
     register,
@@ -65,6 +70,7 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
       status: post?.status || "draft",
       category_ids: post?.categories.map(c => c.id) || [],
       tag_ids: post?.tags.map(t => t.id) || [],
+      featured_image_id: post?.featured_image_id,
     },
   });
 
@@ -120,12 +126,17 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    await uploadImageToContent(file);
+  };
 
+  const uploadImageToContent = async (file: File) => {
     try {
-      const result = await admin.upload(file);
+      // Generate alt text from filename
+      const altText = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+      const result = await admin.images.upload(file, altText);
       const imageUrl = result.url;
       const currentContent = watch("content");
-      setValue("content", `${currentContent}\n\n![${file.name}](${imageUrl})\n`);
+      setValue("content", `${currentContent}\n\n![${altText}](${imageUrl})\n`);
       toast({
         title: "アップロード完了",
         description: "画像をアップロードしました",
@@ -136,6 +147,51 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
         description: "画像のアップロードに失敗しました",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleImageInsert = (imageUrl: string, altText: string) => {
+    const currentContent = watch("content");
+    setValue("content", `${currentContent}\n\n![${altText}](${imageUrl})\n`);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set isDragging to false if leaving the editor container
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+    if (imageFiles.length === 0) {
+      toast({
+        title: "エラー",
+        description: "画像ファイルのみドロップできます",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Upload all images
+    for (const file of imageFiles) {
+      await uploadImageToContent(file);
     }
   };
 
@@ -216,10 +272,29 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
           </div>
         </div>
 
+        <FeaturedImageSelector
+          selectedImageId={watch("featured_image_id")}
+          onImageSelect={(imageId) => setValue("featured_image_id", imageId || undefined)}
+          disabled={isLoading}
+        />
+
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label>本文</Label>
             <div className="flex gap-2">
+              <ImageGalleryDialog 
+                onImageSelect={handleImageInsert}
+                trigger={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                  >
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                    画像を挿入
+                  </Button>
+                }
+              />
               <Button
                 type="button"
                 variant="outline"
@@ -227,7 +302,7 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
                 onClick={() => document.getElementById("image-upload")?.click()}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                画像
+                ファイルから
               </Button>
               <input
                 id="image-upload"
@@ -245,13 +320,28 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
               <TabsTrigger value="preview">プレビュー</TabsTrigger>
             </TabsList>
             <TabsContent value="editor">
-              <Textarea
-                {...register("content")}
-                placeholder="Markdownで記事を書く..."
-                rows={20}
-                disabled={isLoading}
-                className="font-mono"
-              />
+              <div 
+                className="relative"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <Textarea
+                  {...register("content")}
+                  placeholder="Markdownで記事を書く...（画像をドラッグ&ドロップで追加できます）"
+                  rows={20}
+                  disabled={isLoading}
+                  className={`font-mono ${isDragging ? 'border-primary border-2 bg-primary/5' : ''}`}
+                />
+                {isDragging && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-primary/10 border-2 border-dashed border-primary rounded-md pointer-events-none">
+                    <div className="text-center">
+                      <ImagePlus className="h-12 w-12 mx-auto mb-2 text-primary" />
+                      <p className="text-sm font-medium text-primary">画像をドロップして追加</p>
+                    </div>
+                  </div>
+                )}
+              </div>
               {errors.content && (
                 <p className="text-sm text-destructive mt-2">{errors.content.message}</p>
               )}

@@ -13,6 +13,7 @@ class PostBase(BaseModel):
     content: str
     excerpt: Optional[str] = None
     status: PostStatus = PostStatus.DRAFT
+    featured_image_id: Optional[int] = None
 
 
 class PostCreate(PostBase):
@@ -26,6 +27,7 @@ class PostUpdate(BaseModel):
     content: Optional[str] = None
     excerpt: Optional[str] = None
     status: Optional[PostStatus] = None
+    featured_image_id: Optional[int] = None
     category_ids: Optional[List[int]] = None
     tag_ids: Optional[List[int]] = None
 
@@ -45,6 +47,11 @@ class Post(PostInDB):
     user: User
     categories: List[Category] = []
     tags: List[Tag] = []
+    featured_image: Optional["Image"] = None
+
+# Import here to avoid circular import
+from app.schemas.image import Image
+Post.model_rebuild()
 
 
 class PostList(BaseModel):

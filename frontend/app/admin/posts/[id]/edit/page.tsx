@@ -23,15 +23,8 @@ export default function EditPostPage({ params }: PageProps) {
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        // Get all posts to find the one we need
-        const response = await admin.posts.list(1, 100);
-        const foundPost = response.posts.find((p: any) => p.id === parseInt(id));
-        
-        if (foundPost) {
-          // Get full post details
-          const fullPost = await posts.get(foundPost.slug).catch(() => foundPost);
-          setPost(fullPost);
-        }
+        const postData = await admin.posts.get(parseInt(id));
+        setPost(postData);
       } catch (error) {
         toast({
           title: "エラー",

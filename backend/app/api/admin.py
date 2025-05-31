@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
+import io
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -7,10 +8,12 @@ from app.api.deps import get_current_user
 from app.schemas.post import Post, PostCreate, PostUpdate, PostList
 from app.schemas.category import Category, CategoryCreate, CategoryUpdate
 from app.schemas.tag import Tag, TagCreate, TagUpdate
-from app.models import post as post_model, category as category_model, tag as tag_model, user as user_model
+from app.schemas.image import Image, ImageCreate, ImageUpdate, ImageUploadResponse
+from app.models import post as post_model, category as category_model, tag as tag_model, user as user_model, image as image_model
 from app.models.post import PostStatus
 import os
 import uuid
+from PIL import Image as PILImage
 
 router = APIRouter()
 
@@ -84,6 +87,25 @@ def create_post(
     db.add(post)
     db.commit()
     db.refresh(post)
+    
+    return post
+
+
+@router.get("/posts/{post_id}", response_model=Post)
+def get_post(
+    post_id: int,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    post = db.query(post_model.Post).filter(
+        post_model.Post.id == post_id
+    ).first()
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Post not found"
+        )
     
     return post
 
@@ -428,11 +450,44 @@ def delete_tag(
     return {"message": "Tag deleted successfully"}
 
 
-# File upload
-@router.post("/upload")
-async def upload_file(
+# Images
+@router.get("/images", response_model=List[Image])
+def get_all_images(
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    images = db.query(image_model.Image).order_by(
+        image_model.Image.created_at.desc()
+    ).all()
+    return images
+
+
+@router.get("/images/{image_id}", response_model=Image)
+def get_image(
+    image_id: int,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    image = db.query(image_model.Image).filter(
+        image_model.Image.id == image_id
+    ).first()
+    
+    if not image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image not found"
+        )
+    
+    return image
+
+
+@router.post("/images/upload", response_model=ImageUploadResponse)
+async def upload_image(
     file: UploadFile = File(...),
-    current_user: user_model.User = Depends(get_current_user)
+    alt_text: str = None,
+    caption: str = None,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     # Validate file type
     allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
@@ -442,18 +497,183 @@ async def upload_file(
             detail="Invalid file type. Only images are allowed."
         )
     
+    # Validate file size (5MB max)
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:  # 5MB
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size too large. Maximum 5MB allowed."
+        )
+    
     # Generate unique filename
     file_extension = os.path.splitext(file.filename)[1]
     unique_filename = f"{uuid.uuid4()}{file_extension}"
     
     # Create uploads directory if it doesn't exist
-    upload_dir = "uploads"
+    upload_dir = "uploads/images"
     os.makedirs(upload_dir, exist_ok=True)
     
     # Save file
     file_path = os.path.join(upload_dir, unique_filename)
-    with open(file_path, "wb") as buffer:
-        content = await file.read()
-        buffer.write(content)
     
-    return {"filename": unique_filename, "url": f"/uploads/{unique_filename}"}
+    # Process image with Pillow for optimization and thumbnail creation
+    try:
+        # Open and process the image
+        with PILImage.open(io.BytesIO(content)) as img:
+            # Convert RGBA to RGB if necessary (for JPEG compatibility)
+            if img.mode in ('RGBA', 'LA', 'P'):
+                # Create a white background
+                rgb_img = PILImage.new('RGB', img.size, (255, 255, 255))
+                # Paste the image on the white background
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                rgb_img.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                img = rgb_img
+            
+            # Get original dimensions
+            width, height = img.size
+            
+            # Save optimized original image
+            img.save(file_path, quality=85, optimize=True)
+            
+            # Create thumbnail directory
+            thumb_dir = os.path.join(upload_dir, "thumbnails")
+            os.makedirs(thumb_dir, exist_ok=True)
+            
+            # Generate thumbnails
+            thumbnail_sizes = {
+                'small': (150, 150),
+                'medium': (300, 300),
+                'large': (800, 800)
+            }
+            
+            for size_name, (max_width, max_height) in thumbnail_sizes.items():
+                # Create a copy for thumbnail
+                thumb_img = img.copy()
+                
+                # Calculate thumbnail size maintaining aspect ratio
+                thumb_img.thumbnail((max_width, max_height), PILImage.Resampling.LANCZOS)
+                
+                # Save thumbnail
+                thumb_filename = f"{os.path.splitext(unique_filename)[0]}_{size_name}{file_extension}"
+                thumb_path = os.path.join(thumb_dir, thumb_filename)
+                thumb_img.save(thumb_path, quality=85, optimize=True)
+                
+    except Exception as e:
+        # If image processing fails, save the original file
+        with open(file_path, "wb") as buffer:
+            buffer.write(content)
+        # Try to get dimensions from the saved file
+        try:
+            with PILImage.open(file_path) as img:
+                width, height = img.size
+        except Exception:
+            width = height = None
+    
+    # Generate alt text from filename if not provided
+    if not alt_text and file.filename:
+        # Remove extension and replace separators with spaces
+        alt_text = os.path.splitext(file.filename)[0].replace('_', ' ').replace('-', ' ')
+    
+    # Create image record in database
+    image_data = ImageCreate(
+        filename=unique_filename,
+        original_name=file.filename or unique_filename,
+        alt_text=alt_text,
+        caption=caption,
+        file_size=len(content),
+        width=width,
+        height=height,
+        mime_type=file.content_type
+    )
+    
+    image = image_model.Image(**image_data.model_dump())
+    db.add(image)
+    db.commit()
+    db.refresh(image)
+    
+    return ImageUploadResponse(
+        id=image.id,
+        filename=unique_filename,
+        url=f"/uploads/images/{unique_filename}",
+        message="Image uploaded successfully"
+    )
+
+
+@router.put("/images/{image_id}", response_model=Image)
+def update_image(
+    image_id: int,
+    image_in: ImageUpdate,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    image = db.query(image_model.Image).filter(
+        image_model.Image.id == image_id
+    ).first()
+    
+    if not image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image not found"
+        )
+    
+    # Update fields
+    update_data = image_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(image, field, value)
+    
+    db.commit()
+    db.refresh(image)
+    
+    return image
+
+
+@router.delete("/images/{image_id}")
+def delete_image(
+    image_id: int,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    image = db.query(image_model.Image).filter(
+        image_model.Image.id == image_id
+    ).first()
+    
+    if not image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image not found"
+        )
+    
+    # Check if image is used as featured image in any posts
+    posts_using_image = db.query(post_model.Post).filter(
+        post_model.Post.featured_image_id == image_id
+    ).count()
+    
+    if posts_using_image > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete image. It is used as featured image in {posts_using_image} post(s)."
+        )
+    
+    # Delete the actual file
+    file_path = os.path.join("uploads/images", image.filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    
+    # Delete database record
+    db.delete(image)
+    db.commit()
+    
+    return {"message": "Image deleted successfully"}
+
+
+# Backward compatibility - keep old upload endpoint
+@router.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Use the new upload_image function for backward compatibility
+    result = await upload_image(file=file, current_user=current_user, db=db)
+    return {"filename": result.filename, "url": result.url}

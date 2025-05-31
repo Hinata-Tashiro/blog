@@ -2,6 +2,12 @@ import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
 
+// Helper function to get image URL
+export const getImageUrl = (filename: string) => {
+  const baseUrl = API_URL.replace('/api', '');
+  return `${baseUrl}/uploads/images/${filename}`;
+};
+
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -85,6 +91,10 @@ export const admin = {
       const response = await api.get('/admin/posts', { params: { page, per_page } });
       return response.data;
     },
+    get: async (id: number) => {
+      const response = await api.get(`/admin/posts/${id}`);
+      return response.data;
+    },
     create: async (data: any) => {
       const response = await api.post('/admin/posts', data);
       return response.data;
@@ -139,6 +149,36 @@ export const admin = {
     },
     delete: async (id: number) => {
       const response = await api.delete(`/admin/tags/${id}`);
+      return response.data;
+    },
+  },
+  images: {
+    list: async () => {
+      const response = await api.get('/admin/images');
+      return response.data;
+    },
+    get: async (id: number) => {
+      const response = await api.get(`/admin/images/${id}`);
+      return response.data;
+    },
+    upload: async (file: File, altText?: string, caption?: string) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (altText) formData.append('alt_text', altText);
+      if (caption) formData.append('caption', caption);
+      const response = await api.post('/admin/images/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    },
+    update: async (id: number, data: any) => {
+      const response = await api.put(`/admin/images/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: number) => {
+      const response = await api.delete(`/admin/images/${id}`);
       return response.data;
     },
   },

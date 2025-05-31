@@ -4,9 +4,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
-import { ComponentPropsWithoutRef } from 'react';
+import { ComponentPropsWithoutRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { ImageLightbox } from './image-lightbox';
 
 interface MarkdownRendererProps {
   content: string;
@@ -14,12 +15,41 @@ interface MarkdownRendererProps {
 }
 
 export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<Array<{ src: string; alt?: string }>>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Extract all images from content for lightbox
+  useEffect(() => {
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    const images: Array<{ src: string; alt?: string }> = [];
+    let match;
+
+    while ((match = imageRegex.exec(content)) !== null) {
+      const alt = match[1];
+      const src = match[2];
+      const fullSrc = src.startsWith('http') ? src : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${src}`;
+      images.push({ src: fullSrc, alt });
+    }
+
+    setLightboxImages(images);
+  }, [content]);
+
+  const handleImageClick = (src: string) => {
+    const index = lightboxImages.findIndex(img => img.src === src);
+    if (index !== -1) {
+      setLightboxIndex(index);
+      setLightboxOpen(true);
+    }
+  };
+
   return (
-    <ReactMarkdown
-      className={`prose prose-slate dark:prose-invert max-w-none ${className}`}
-      remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeHighlight, rehypeRaw]}
-      components={{
+    <>
+      <ReactMarkdown
+        className={`prose prose-slate dark:prose-invert max-w-none ${className}`}
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeHighlight, rehypeRaw]}
+        components={{
         code: ({ node, inline, className, children, ...props }: any) => {
           if (inline) {
             return (
@@ -54,13 +84,13 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
           const imageSrc = src.startsWith('http') ? src : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${src}`;
           
           return (
-            <span className="block my-8">
+            <span className="block my-8 cursor-pointer" onClick={() => handleImageClick(imageSrc)}>
               <Image
                 src={imageSrc}
                 alt={alt || ''}
                 width={800}
                 height={600}
-                className="rounded-lg shadow-lg mx-auto"
+                className="rounded-lg shadow-lg mx-auto hover:shadow-xl transition-shadow duration-200"
                 style={{ height: 'auto', maxWidth: '100%' }}
                 loading="lazy"
               />
@@ -150,5 +180,13 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
     >
       {content}
     </ReactMarkdown>
+    
+    <ImageLightbox
+      isOpen={lightboxOpen}
+      onClose={() => setLightboxOpen(false)}
+      images={lightboxImages}
+      initialIndex={lightboxIndex}
+    />
+    </>
   );
 }
