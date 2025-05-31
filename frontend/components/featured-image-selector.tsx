@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { admin } from "@/lib/api";
+import { admin, getImageUrl } from "@/lib/api";
 import { Image as ImageIcon, Search, X, Upload } from "lucide-react";
 import {
   Dialog,
@@ -74,13 +74,17 @@ export function FeaturedImageSelector({
     fetchImages();
   };
 
-  const handleImageClick = (image: Image) => {
+  const handleImageClick = (image: Image, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     onImageSelect(image.id);
     setSelectedImage(image);
     setIsDialogOpen(false);
   };
 
-  const handleRemoveImage = () => {
+  const handleRemoveImage = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     onImageSelect(null);
     setSelectedImage(null);
   };
@@ -100,7 +104,7 @@ export function FeaturedImageSelector({
           <CardContent className="p-0">
             <div className="aspect-video relative bg-muted">
               <img
-                src={`/uploads/images/${selectedImage.filename}`}
+                src={getImageUrl(selectedImage.filename)}
                 alt={selectedImage.alt_text || selectedImage.original_name}
                 className="w-full h-full object-cover"
               />
@@ -109,6 +113,7 @@ export function FeaturedImageSelector({
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                       <Button
+                        type="button"
                         variant="secondary"
                         size="sm"
                         onClick={handleDialogOpen}
@@ -128,9 +133,10 @@ export function FeaturedImageSelector({
                   </Dialog>
                   
                   <Button
+                    type="button"
                     variant="destructive"
                     size="sm"
-                    onClick={handleRemoveImage}
+                    onClick={(e) => handleRemoveImage(e)}
                     disabled={disabled}
                   >
                     <X className="h-4 w-4 mr-2" />
@@ -159,6 +165,7 @@ export function FeaturedImageSelector({
                   アイキャッチ画像を選択
                 </p>
                 <Button 
+                  type="button"
                   variant="outline" 
                   size="sm" 
                   onClick={handleDialogOpen}
@@ -193,7 +200,7 @@ function ImageSelectorDialog({
   images: Image[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  onImageClick: (image: Image) => void;
+  onImageClick: (image: Image, e?: React.MouseEvent) => void;
   isLoading: boolean;
 }) {
   return (
@@ -234,12 +241,12 @@ function ImageSelectorDialog({
                 <Card 
                   key={image.id} 
                   className="cursor-pointer hover:ring-2 hover:ring-primary transition-all overflow-hidden"
-                  onClick={() => onImageClick(image)}
+                  onClick={(e) => handleImageClick(image, e)}
                 >
                   <CardContent className="p-0">
                     <div className="aspect-square relative bg-muted">
                       <img
-                        src={`/uploads/images/${image.filename}`}
+                        src={getImageUrl(image.filename)}
                         alt={image.alt_text || image.original_name}
                         className="w-full h-full object-cover"
                         loading="lazy"

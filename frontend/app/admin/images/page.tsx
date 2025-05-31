@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { admin } from "@/lib/api";
+import { admin, getImageUrl } from "@/lib/api";
 import { Plus, Upload, Edit, Trash2, Image as ImageIcon, Copy, Search } from "lucide-react";
 import {
   Dialog,
@@ -347,7 +347,7 @@ export default function ImagesPage() {
             <Card key={image.id} className="overflow-hidden">
               <div className="aspect-square relative bg-muted">
                 <img
-                  src={`/uploads/images/${image.filename}`}
+                  src={getImageUrl(image.filename)}
                   alt={image.alt_text || image.original_name}
                   className="w-full h-full object-cover"
                   loading="lazy"

@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { posts } from "@/lib/api";
+import { posts, getImageUrl } from "@/lib/api";
 import { useSearchParams } from "next/navigation";
 
 interface Post {
@@ -80,7 +80,7 @@ function PostListContent() {
           {post.featured_image && (
             <div className="aspect-video relative bg-muted">
               <img
-                src={`/uploads/images/${post.featured_image.filename}`}
+                src={getImageUrl(post.featured_image.filename)}
                 alt={post.featured_image.alt_text || post.title}
                 className="w-full h-full object-cover"
                 loading="lazy"

@@ -5,15 +5,21 @@ const nextConfig = {
     serverComponentsExternalPackages: []
   },
   images: {
-    domains: ['localhost'],
-  },
-  async rewrites() {
-    return [
+    remotePatterns: [
       {
-        source: '/uploads/:path*',
-        destination: process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') + '/uploads/:path*',
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '',
+        pathname: '/uploads/**',
       },
-    ];
+      {
+        protocol: 'https',
+        hostname: 'localhost',
+        port: '',
+        pathname: '/uploads/**',
+      }
+    ],
+    unoptimized: true,
   },
 }
 

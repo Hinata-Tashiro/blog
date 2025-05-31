@@ -2,6 +2,12 @@ import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api';
 
+// Helper function to get image URL
+export const getImageUrl = (filename: string) => {
+  const baseUrl = API_URL.replace('/api', '');
+  return `${baseUrl}/uploads/images/${filename}`;
+};
+
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
