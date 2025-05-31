@@ -99,14 +99,46 @@ export const admin = {
     },
   },
   categories: {
+    list: async () => {
+      const response = await api.get('/admin/categories');
+      return response.data;
+    },
+    get: async (id: number) => {
+      const response = await api.get(`/admin/categories/${id}`);
+      return response.data;
+    },
     create: async (data: any) => {
       const response = await api.post('/admin/categories', data);
       return response.data;
     },
+    update: async (id: number, data: any) => {
+      const response = await api.put(`/admin/categories/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: number) => {
+      const response = await api.delete(`/admin/categories/${id}`);
+      return response.data;
+    },
   },
   tags: {
+    list: async () => {
+      const response = await api.get('/admin/tags');
+      return response.data;
+    },
+    get: async (id: number) => {
+      const response = await api.get(`/admin/tags/${id}`);
+      return response.data;
+    },
     create: async (data: any) => {
       const response = await api.post('/admin/tags', data);
+      return response.data;
+    },
+    update: async (id: number, data: any) => {
+      const response = await api.put(`/admin/tags/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: number) => {
+      const response = await api.delete(`/admin/tags/${id}`);
       return response.data;
     },
   },
