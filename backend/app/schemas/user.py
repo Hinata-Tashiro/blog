@@ -44,3 +44,13 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     user_id: Optional[int] = None
     username: Optional[str] = None
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class UsernameChange(BaseModel):
+    new_username: str
+    current_password: str
