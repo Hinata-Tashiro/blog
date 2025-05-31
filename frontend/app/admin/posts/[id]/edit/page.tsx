@@ -42,16 +42,13 @@ export default function EditPostPage({ params }: PageProps) {
 
   const handleSave = async (data: any, isPublish?: boolean) => {
     try {
-      console.log("Calling admin.posts.update with:", { id: parseInt(id), data });
-      const result = await admin.posts.update(parseInt(id), data);
-      console.log("Update result:", result);
+      await admin.posts.update(parseInt(id), data);
       toast({
         title: isPublish ? "公開しました" : "更新しました",
         description: isPublish ? "記事を公開しました" : "記事を更新しました",
       });
       router.push("/admin");
     } catch (error) {
-      console.error("Update error:", error);
       toast({
         title: "エラー",
         description: "記事の更新に失敗しました",
