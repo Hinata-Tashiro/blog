@@ -23,15 +23,8 @@ export default function EditPostPage({ params }: PageProps) {
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        // Get all posts to find the one we need
-        const response = await admin.posts.list(1, 100);
-        const foundPost = response.posts.find((p: any) => p.id === parseInt(id));
-        
-        if (foundPost) {
-          // Get full post details
-          const fullPost = await posts.get(foundPost.slug).catch(() => foundPost);
-          setPost(fullPost);
-        }
+        const postData = await admin.posts.get(parseInt(id));
+        setPost(postData);
       } catch (error) {
         toast({
           title: "エラー",
@@ -49,13 +42,16 @@ export default function EditPostPage({ params }: PageProps) {
 
   const handleSave = async (data: any, isPublish?: boolean) => {
     try {
-      await admin.posts.update(parseInt(id), data);
+      console.log("Calling admin.posts.update with:", { id: parseInt(id), data });
+      const result = await admin.posts.update(parseInt(id), data);
+      console.log("Update result:", result);
       toast({
         title: isPublish ? "公開しました" : "更新しました",
         description: isPublish ? "記事を公開しました" : "記事を更新しました",
       });
       router.push("/admin");
     } catch (error) {
+      console.error("Update error:", error);
       toast({
         title: "エラー",
         description: "記事の更新に失敗しました",

@@ -44,6 +44,13 @@ export function FeaturedImageSelector({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<Image | null>(null);
 
+  // Fetch images on mount if selectedImageId is provided
+  useEffect(() => {
+    if (selectedImageId && images.length === 0) {
+      fetchImages();
+    }
+  }, [selectedImageId]);
+
   // Find selected image
   useEffect(() => {
     if (selectedImageId && images.length > 0) {
@@ -241,7 +248,7 @@ function ImageSelectorDialog({
                 <Card 
                   key={image.id} 
                   className="cursor-pointer hover:ring-2 hover:ring-primary transition-all overflow-hidden"
-                  onClick={(e) => handleImageClick(image, e)}
+                  onClick={(e) => onImageClick(image, e)}
                 >
                   <CardContent className="p-0">
                     <div className="aspect-square relative bg-muted">

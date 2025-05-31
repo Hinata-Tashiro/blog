@@ -73,6 +73,15 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
     },
   });
 
+  // Debug log for post data
+  useEffect(() => {
+    if (post) {
+      console.log("Post data loaded:", post);
+      console.log("Featured image ID from post:", post.featured_image_id);
+      console.log("Featured image object:", post.featured_image);
+    }
+  }, [post]);
+
   const content = watch("content");
   const title = watch("title");
 
@@ -116,6 +125,8 @@ export function PostEditor({ post, onSave }: PostEditorProps) {
       if (isPublish) {
         data.status = "published";
       }
+      console.log("Submitting post data:", data);
+      console.log("Featured image ID:", data.featured_image_id);
       await onSave(data, isPublish);
     } finally {
       setIsLoading(false);

@@ -91,6 +91,10 @@ export const admin = {
       const response = await api.get('/admin/posts', { params: { page, per_page } });
       return response.data;
     },
+    get: async (id: number) => {
+      const response = await api.get(`/admin/posts/${id}`);
+      return response.data;
+    },
     create: async (data: any) => {
       const response = await api.post('/admin/posts', data);
       return response.data;

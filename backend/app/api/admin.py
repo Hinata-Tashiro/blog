@@ -90,10 +90,9 @@ def create_post(
     return post
 
 
-@router.put("/posts/{post_id}", response_model=Post)
-def update_post(
+@router.get("/posts/{post_id}", response_model=Post)
+def get_post(
     post_id: int,
-    post_in: PostUpdate,
     current_user: user_model.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -107,9 +106,38 @@ def update_post(
             detail="Post not found"
         )
     
+    return post
+
+
+@router.put("/posts/{post_id}", response_model=Post)
+def update_post(
+    post_id: int,
+    post_in: PostUpdate,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    print(f"DEBUG: Updating post {post_id}")
+    print(f"DEBUG: Request data: {post_in}")
+    print(f"DEBUG: Featured image ID in request: {post_in.featured_image_id}")
+    
+    post = db.query(post_model.Post).filter(
+        post_model.Post.id == post_id
+    ).first()
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Post not found"
+        )
+    
+    print(f"DEBUG: Current featured_image_id: {post.featured_image_id}")
+    
     # Update fields
     update_data = post_in.model_dump(exclude_unset=True, exclude={"category_ids", "tag_ids"})
+    print(f"DEBUG: Update data: {update_data}")
+    
     for field, value in update_data.items():
+        print(f"DEBUG: Setting {field} = {value}")
         setattr(post, field, value)
     
     # Update categories if provided
@@ -132,8 +160,12 @@ def update_post(
     elif post_in.status == PostStatus.DRAFT:
         post.published_at = None
     
+    print(f"DEBUG: Before commit - featured_image_id: {post.featured_image_id}")
+    
     db.commit()
     db.refresh(post)
+    
+    print(f"DEBUG: After commit - featured_image_id: {post.featured_image_id}")
     
     return post
 
