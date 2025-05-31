@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuthStore } from "@/lib/auth-store";
 import { FileText, Tags, FolderOpen, LogOut, User } from "lucide-react";
 
@@ -51,6 +52,7 @@ export function AdminHeader() {
               {user.username}
             </span>
           )}
+          <ThemeToggle />
           <Button variant="ghost" size="sm" asChild>
             <Link href="/admin/profile">
               <User className="mr-2 h-4 w-4" />

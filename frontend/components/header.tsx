@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Search, BookOpen, Github, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -56,17 +57,20 @@ export function Header() {
             </Button>
           </form>
           
-          <div className="hidden md:flex items-center space-x-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="https://github.com" target="_blank" rel="noopener noreferrer">
-                <Github className="h-4 w-4" suppressHydrationWarning />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="https://twitter.com" target="_blank" rel="noopener noreferrer">
-                <X className="h-4 w-4" suppressHydrationWarning />
-              </Link>
-            </Button>
+          <div className="flex items-center space-x-2">
+            <ThemeToggle />
+            <div className="hidden md:flex items-center space-x-2">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="https://github.com" target="_blank" rel="noopener noreferrer">
+                  <Github className="h-4 w-4" suppressHydrationWarning />
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="https://twitter.com" target="_blank" rel="noopener noreferrer">
+                  <X className="h-4 w-4" suppressHydrationWarning />
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
