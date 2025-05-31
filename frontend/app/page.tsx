@@ -4,21 +4,72 @@ import { Sidebar } from "@/components/sidebar";
 import { posts, categories as categoriesApi, tags as tagsApi } from "@/lib/api";
 import { Suspense } from "react";
 
-async function HomePage({ searchParams }: { searchParams: { search?: string; category?: string; tag?: string; page?: string } }) {
+async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(10000), // 10秒タイムアウト
+      });
+      return response;
+    } catch (error) {
+      console.warn(`Fetch attempt ${i + 1} failed for ${url}:`, error);
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // 指数バックオフ
+    }
+  }
+  throw new Error('All retry attempts failed');
+}
+
+async function fetchServerData(searchParams: { search?: string; category?: string; tag?: string; page?: string }) {
   const page = parseInt(searchParams.page || '1');
   const limit = 12;
   
-  const [postsData, categoriesData, tagsData] = await Promise.all([
-    posts.list({
-      page,
-      per_page: limit,
-      search: searchParams.search,
-      category: searchParams.category,
-      tag: searchParams.tag,
-    }),
-    categoriesApi.list(),
-    tagsApi.list(),
-  ]);
+  try {
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'http://nginx/api' 
+      : 'http://backend:8000/api';
+    
+    const urls = [
+      `${baseUrl}/posts/?page=${page}&per_page=${limit}${searchParams.search ? `&search=${searchParams.search}` : ''}${searchParams.category ? `&category=${searchParams.category}` : ''}${searchParams.tag ? `&tag=${searchParams.tag}` : ''}`,
+      `${baseUrl}/categories/`,
+      `${baseUrl}/tags/`,
+    ];
+
+    const [postsRes, categoriesRes, tagsRes] = await Promise.all([
+      fetchWithRetry(urls[0]),
+      fetchWithRetry(urls[1]),
+      fetchWithRetry(urls[2]),
+    ]);
+
+    if (!postsRes.ok || !categoriesRes.ok || !tagsRes.ok) {
+      console.error('API request details:', {
+        posts: { status: postsRes.status, url: urls[0] },
+        categories: { status: categoriesRes.status, url: urls[1] },
+        tags: { status: tagsRes.status, url: urls[2] }
+      });
+      throw new Error(`API request failed - Posts: ${postsRes.status}, Categories: ${categoriesRes.status}, Tags: ${tagsRes.status}`);
+    }
+
+    const [postsData, categoriesData, tagsData] = await Promise.all([
+      postsRes.json(),
+      categoriesRes.json(),
+      tagsRes.json(),
+    ]);
+
+    return { postsData, categoriesData, tagsData };
+  } catch (error) {
+    console.error('Server-side API error:', error);
+    return {
+      postsData: { posts: [], total: 0, total_pages: 0 },
+      categoriesData: [],
+      tagsData: [],
+    };
+  }
+}
+
+async function HomePage({ searchParams }: { searchParams: { search?: string; category?: string; tag?: string; page?: string } }) {
+  const page = parseInt(searchParams.page || '1');
+  const { postsData, categoriesData, tagsData } = await fetchServerData(searchParams);
 
   return (
     <div className="min-h-screen bg-background">

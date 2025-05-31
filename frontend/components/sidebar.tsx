@@ -29,7 +29,7 @@ export function Sidebar({ categories, tags }: SidebarProps) {
       {/* トレンドセクション */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="h-5 w-5 text-primary" />
+          <TrendingUp className="h-5 w-5 text-primary" suppressHydrationWarning />
           <h3 className="font-semibold">トレンド</h3>
         </div>
         <div className="space-y-3">
@@ -45,7 +45,7 @@ export function Sidebar({ categories, tags }: SidebarProps) {
       {/* カテゴリセクション */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Folder className="h-5 w-5 text-primary" />
+          <Folder className="h-5 w-5 text-primary" suppressHydrationWarning />
           <h3 className="font-semibold">カテゴリ</h3>
         </div>
         <div className="space-y-2">
@@ -66,7 +66,7 @@ export function Sidebar({ categories, tags }: SidebarProps) {
       {/* タグセクション */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Tag className="h-5 w-5 text-primary" />
+          <Tag className="h-5 w-5 text-primary" suppressHydrationWarning />
           <h3 className="font-semibold">タグ</h3>
         </div>
         <div className="flex flex-wrap gap-2">

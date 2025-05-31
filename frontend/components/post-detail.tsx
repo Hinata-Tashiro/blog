@@ -1,12 +1,11 @@
 "use client";
 
-import { format } from "date-fns";
-import { ja } from "date-fns/locale";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/header";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { useEffect, useState } from "react";
 
 interface Post {
   id: number;
@@ -23,6 +22,18 @@ interface PostDetailProps {
 }
 
 export function PostDetail({ post }: PostDetailProps) {
+  const [formattedDate, setFormattedDate] = useState<string>('');
+
+  useEffect(() => {
+    setFormattedDate(
+      new Date(post.published_at).toLocaleDateString('ja-JP', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    );
+  }, [post.published_at]);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -34,7 +45,7 @@ export function PostDetail({ post }: PostDetailProps) {
             className="mb-8 hover:bg-secondary/80"
           >
             <Link href="/">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <ArrowLeft className="mr-2 h-4 w-4" suppressHydrationWarning />
               記事一覧に戻る
             </Link>
           </Button>
@@ -67,8 +78,8 @@ export function PostDetail({ post }: PostDetailProps) {
                   </div>
                   <span className="font-medium">{post.user.username}</span>
                 </div>
-                <time dateTime={post.published_at} className="text-sm">
-                  {format(new Date(post.published_at), "yyyy年MM月dd日", { locale: ja })}
+                <time dateTime={post.published_at} className="text-sm" suppressHydrationWarning>
+                  {formattedDate}
                 </time>
               </div>
 

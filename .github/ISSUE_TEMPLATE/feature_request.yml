@@ -1,0 +1,29 @@
+name: ✨ 機能要求
+description: 新しい機能のアイデア
+title: "✨ "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        新しい機能のアイデアを記録します。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 詳細
+      description: 機能の概要、目的、実装アイデアなど
+      placeholder: |
+        ## 機能概要
+        どんな機能か
+
+        ## 目的・理由
+        なぜ必要か
+
+        ## 実装アイデア
+        どう実装するか
+
+        ## 参考
+        参考になるサイトやUIなど
+    validations:
+      required: true

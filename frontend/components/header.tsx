@@ -22,7 +22,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center px-4">
         <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-          <BookOpen className="h-6 w-6 text-primary" />
+          <BookOpen className="h-6 w-6 text-primary" suppressHydrationWarning />
           <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             Tech Blog
           </span>
@@ -52,19 +52,19 @@ export function Header() {
               size="sm"
               className="absolute right-0 top-0 h-full px-3"
             >
-              <Search className="h-4 w-4" />
+              <Search className="h-4 w-4" suppressHydrationWarning />
             </Button>
           </form>
           
           <div className="hidden md:flex items-center space-x-2">
             <Button variant="ghost" size="sm" asChild>
               <Link href="https://github.com" target="_blank" rel="noopener noreferrer">
-                <Github className="h-4 w-4" />
+                <Github className="h-4 w-4" suppressHydrationWarning />
               </Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>
               <Link href="https://twitter.com" target="_blank" rel="noopener noreferrer">
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" suppressHydrationWarning />
               </Link>
             </Button>
           </div>

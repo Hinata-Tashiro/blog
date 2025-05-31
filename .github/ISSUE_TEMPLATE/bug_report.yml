@@ -1,0 +1,31 @@
+name: 🐛 バグ報告
+description: バグを記録する
+title: "🐛 "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        バグの詳細を記録します。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 詳細
+      description: バグの内容、再現手順、期待される動作など
+      placeholder: |
+        ## 問題
+        何が起こっているか
+
+        ## 再現手順
+        1. 
+        2. 
+        3. 
+
+        ## 期待される動作
+        本来どうなるべきか
+
+        ## 環境
+        OS、ブラウザなど
+    validations:
+      required: true
