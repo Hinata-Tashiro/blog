@@ -142,6 +142,36 @@ export const admin = {
       return response.data;
     },
   },
+  images: {
+    list: async () => {
+      const response = await api.get('/admin/images');
+      return response.data;
+    },
+    get: async (id: number) => {
+      const response = await api.get(`/admin/images/${id}`);
+      return response.data;
+    },
+    upload: async (file: File, altText?: string, caption?: string) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (altText) formData.append('alt_text', altText);
+      if (caption) formData.append('caption', caption);
+      const response = await api.post('/admin/images/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    },
+    update: async (id: number, data: any) => {
+      const response = await api.put(`/admin/images/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: number) => {
+      const response = await api.delete(`/admin/images/${id}`);
+      return response.data;
+    },
+  },
   upload: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);

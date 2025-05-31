@@ -36,6 +36,7 @@ class Post(Base):
     excerpt = Column(Text, nullable=True)
     status = Column(Enum(PostStatus), default=PostStatus.DRAFT, nullable=False, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    featured_image_id = Column(Integer, ForeignKey('images.id'), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     published_at = Column(DateTime(timezone=True), nullable=True, index=True)
@@ -44,3 +45,4 @@ class Post(Base):
     user = relationship("User", back_populates="posts")
     categories = relationship("Category", secondary=post_categories, back_populates="posts")
     tags = relationship("Tag", secondary=post_tags, back_populates="posts")
+    featured_image = relationship("Image", foreign_keys=[featured_image_id])
