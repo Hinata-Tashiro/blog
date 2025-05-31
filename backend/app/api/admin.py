@@ -1,0 +1,243 @@
+from typing import List, Optional
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from sqlalchemy.orm import Session
+from app.db.session import get_db
+from app.api.deps import get_current_user
+from app.schemas.post import Post, PostCreate, PostUpdate, PostList
+from app.schemas.category import Category, CategoryCreate
+from app.schemas.tag import Tag, TagCreate
+from app.models import post as post_model, category as category_model, tag as tag_model, user as user_model
+from app.models.post import PostStatus
+import os
+import uuid
+
+router = APIRouter()
+
+
+# Posts
+@router.get("/posts", response_model=PostList)
+def get_all_posts(
+    page: int = 1,
+    per_page: int = 10,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    query = db.query(post_model.Post)
+    total = query.count()
+    
+    offset = (page - 1) * per_page
+    posts = query.order_by(post_model.Post.created_at.desc()).offset(offset).limit(per_page).all()
+    
+    pages = (total + per_page - 1) // per_page
+    
+    return PostList(
+        posts=posts,
+        total=total,
+        page=page,
+        per_page=per_page,
+        pages=pages
+    )
+
+
+@router.post("/posts", response_model=Post)
+def create_post(
+    post_in: PostCreate,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Check if slug already exists
+    existing_post = db.query(post_model.Post).filter(
+        post_model.Post.slug == post_in.slug
+    ).first()
+    
+    if existing_post:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Post with this slug already exists"
+        )
+    
+    # Create post
+    post = post_model.Post(
+        **post_in.model_dump(exclude={"category_ids", "tag_ids"}),
+        user_id=current_user.id
+    )
+    
+    # Add categories
+    if post_in.category_ids:
+        categories = db.query(category_model.Category).filter(
+            category_model.Category.id.in_(post_in.category_ids)
+        ).all()
+        post.categories = categories
+    
+    # Add tags
+    if post_in.tag_ids:
+        tags = db.query(tag_model.Tag).filter(
+            tag_model.Tag.id.in_(post_in.tag_ids)
+        ).all()
+        post.tags = tags
+    
+    # Set published_at if publishing
+    if post_in.status == PostStatus.PUBLISHED:
+        post.published_at = datetime.utcnow()
+    
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    
+    return post
+
+
+@router.put("/posts/{post_id}", response_model=Post)
+def update_post(
+    post_id: int,
+    post_in: PostUpdate,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    post = db.query(post_model.Post).filter(
+        post_model.Post.id == post_id
+    ).first()
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Post not found"
+        )
+    
+    # Update fields
+    update_data = post_in.model_dump(exclude_unset=True, exclude={"category_ids", "tag_ids"})
+    for field, value in update_data.items():
+        setattr(post, field, value)
+    
+    # Update categories if provided
+    if post_in.category_ids is not None:
+        categories = db.query(category_model.Category).filter(
+            category_model.Category.id.in_(post_in.category_ids)
+        ).all()
+        post.categories = categories
+    
+    # Update tags if provided
+    if post_in.tag_ids is not None:
+        tags = db.query(tag_model.Tag).filter(
+            tag_model.Tag.id.in_(post_in.tag_ids)
+        ).all()
+        post.tags = tags
+    
+    # Update published_at
+    if post_in.status == PostStatus.PUBLISHED and not post.published_at:
+        post.published_at = datetime.utcnow()
+    elif post_in.status == PostStatus.DRAFT:
+        post.published_at = None
+    
+    db.commit()
+    db.refresh(post)
+    
+    return post
+
+
+@router.delete("/posts/{post_id}")
+def delete_post(
+    post_id: int,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    post = db.query(post_model.Post).filter(
+        post_model.Post.id == post_id
+    ).first()
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Post not found"
+        )
+    
+    db.delete(post)
+    db.commit()
+    
+    return {"message": "Post deleted successfully"}
+
+
+# Categories
+@router.post("/categories", response_model=Category)
+def create_category(
+    category_in: CategoryCreate,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Check if category exists
+    existing = db.query(category_model.Category).filter(
+        (category_model.Category.name == category_in.name) |
+        (category_model.Category.slug == category_in.slug)
+    ).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Category with this name or slug already exists"
+        )
+    
+    category = category_model.Category(**category_in.model_dump())
+    db.add(category)
+    db.commit()
+    db.refresh(category)
+    
+    return category
+
+
+# Tags
+@router.post("/tags", response_model=Tag)
+def create_tag(
+    tag_in: TagCreate,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Check if tag exists
+    existing = db.query(tag_model.Tag).filter(
+        (tag_model.Tag.name == tag_in.name) |
+        (tag_model.Tag.slug == tag_in.slug)
+    ).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tag with this name or slug already exists"
+        )
+    
+    tag = tag_model.Tag(**tag_in.model_dump())
+    db.add(tag)
+    db.commit()
+    db.refresh(tag)
+    
+    return tag
+
+
+# File upload
+@router.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user: user_model.User = Depends(get_current_user)
+):
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file type. Only images are allowed."
+        )
+    
+    # Generate unique filename
+    file_extension = os.path.splitext(file.filename)[1]
+    unique_filename = f"{uuid.uuid4()}{file_extension}"
+    
+    # Create uploads directory if it doesn't exist
+    upload_dir = "uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Save file
+    file_path = os.path.join(upload_dir, unique_filename)
+    with open(file_path, "wb") as buffer:
+        content = await file.read()
+        buffer.write(content)
+    
+    return {"filename": unique_filename, "url": f"/uploads/{unique_filename}"}
