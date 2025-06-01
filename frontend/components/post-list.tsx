@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +37,7 @@ interface PostListResponse {
 }
 
 function PostListContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [postData, setPostData] = useState<PostListResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -139,11 +141,28 @@ function PostListContent() {
                     {post.tags.map((tag) => (
                       <span
                         key={tag.id}
-                        className="text-xs bg-secondary/50 hover:bg-secondary px-2 py-1 rounded transition-colors"
+                        className="text-xs bg-secondary/50 hover:bg-secondary px-2 py-1 rounded transition-colors cursor-pointer"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          window.location.href = `/?tag=${tag.slug}`;
+                          
+                          // 現在のパラメータを保持して、タグを追加/削除
+                          const params = new URLSearchParams(searchParams);
+                          const currentTags = params.getAll('tags');
+                          
+                          params.delete('tags');
+                          
+                          if (currentTags.includes(tag.slug)) {
+                            // タグを削除
+                            const newTags = currentTags.filter(t => t !== tag.slug);
+                            newTags.forEach(t => params.append('tags', t));
+                          } else {
+                            // タグを追加
+                            [...currentTags, tag.slug].forEach(t => params.append('tags', t));
+                          }
+                          
+                          params.delete('page');
+                          router.push(`/?${params.toString()}`);
                         }}
                       >
                         #{tag.name}
@@ -162,7 +181,11 @@ function PostListContent() {
           {page > 1 && (
             <Button
               variant="outline"
-              onClick={() => window.location.href = `?page=${page - 1}`}
+              onClick={() => {
+                const params = new URLSearchParams(searchParams);
+                params.set('page', (page - 1).toString());
+                router.push(`?${params.toString()}`);
+              }}
             >
               前のページ
             </Button>
@@ -173,7 +196,11 @@ function PostListContent() {
           {page < postData.pages && (
             <Button
               variant="outline"
-              onClick={() => window.location.href = `?page=${page + 1}`}
+              onClick={() => {
+                const params = new URLSearchParams(searchParams);
+                params.set('page', (page + 1).toString());
+                router.push(`?${params.toString()}`);
+              }}
             >
               次のページ
             </Button>
