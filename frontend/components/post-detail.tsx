@@ -7,6 +7,8 @@ import { Header } from "@/components/header";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { getImageUrl } from "@/lib/api";
 import { useEffect, useState } from "react";
+import { useAnalytics } from "@/lib/hooks/use-analytics";
+import { usePathname } from "next/navigation";
 
 interface Post {
   id: number;
@@ -32,6 +34,14 @@ interface PostDetailProps {
 
 export function PostDetail({ post }: PostDetailProps) {
   const [formattedDate, setFormattedDate] = useState<string>('');
+  const pathname = usePathname();
+  
+  // アナリティクストラッキング
+  useAnalytics({
+    path: pathname,
+    postId: post.id,
+    enabled: true
+  });
 
   useEffect(() => {
     setFormattedDate(

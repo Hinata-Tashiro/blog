@@ -1,6 +1,7 @@
 import { PostCard } from "@/components/post-card";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
+import { PageTracker } from "@/components/page-tracker";
 import { posts, categories as categoriesApi, tags as tagsApi } from "@/lib/api";
 import { Suspense } from "react";
 
@@ -74,6 +75,7 @@ async function HomePage({ searchParams }: { searchParams: Promise<{ search?: str
 
   return (
     <div className="min-h-screen bg-background">
+      <PageTracker />
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

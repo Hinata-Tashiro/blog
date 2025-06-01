@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api import auth, posts, categories, tags, admin
+from app.api import auth, posts, categories, tags, admin, analytics
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -26,6 +26,7 @@ app.include_router(posts.router, prefix="/api/posts", tags=["posts"])
 app.include_router(categories.router, prefix="/api/categories", tags=["categories"])
 app.include_router(tags.router, prefix="/api/tags", tags=["tags"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 
 
 @app.get("/api/health")

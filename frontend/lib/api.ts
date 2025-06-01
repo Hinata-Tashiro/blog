@@ -193,3 +193,47 @@ export const admin = {
     return response.data;
   },
 };
+
+export const analytics = {
+  track: async (data: {
+    url_path: string;
+    post_id?: number;
+    referrer?: string;
+    session_id?: string;
+  }) => {
+    try {
+      const response = await api.post('/analytics/track', data);
+      return response.data;
+    } catch (error) {
+      // アナリティクストラッキングのエラーは無視
+      console.warn('Analytics tracking failed:', error);
+      return { status: 'error' };
+    }
+  },
+  admin: {
+    overview: async () => {
+      const response = await api.get('/analytics/admin/overview');
+      return response.data;
+    },
+    traffic: async (days: number = 30) => {
+      const response = await api.get('/analytics/admin/traffic', { params: { days } });
+      return response.data;
+    },
+    popularPosts: async (limit: number = 10) => {
+      const response = await api.get('/analytics/admin/popular-posts', { params: { limit } });
+      return response.data;
+    },
+    deviceStats: async () => {
+      const response = await api.get('/analytics/admin/device-stats');
+      return response.data;
+    },
+    referrerStats: async (limit: number = 10) => {
+      const response = await api.get('/analytics/admin/referrer-stats', { params: { limit } });
+      return response.data;
+    },
+    dashboard: async (days: number = 30) => {
+      const response = await api.get('/analytics/admin/dashboard', { params: { days } });
+      return response.data;
+    },
+  },
+};

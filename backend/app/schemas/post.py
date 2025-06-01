@@ -49,6 +49,10 @@ class Post(PostInDB):
     tags: List[Tag] = []
     featured_image: Optional["Image"] = None
 
+
+class PostResponse(Post):
+    pass
+
 # Import here to avoid circular import
 from app.schemas.image import Image
 Post.model_rebuild()

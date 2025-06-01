@@ -36,6 +36,10 @@ class Image(ImageInDB):
     pass
 
 
+class ImageResponse(ImageInDB):
+    pass
+
+
 class ImageUploadResponse(BaseModel):
     id: int
     filename: str
