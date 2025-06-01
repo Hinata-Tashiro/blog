@@ -25,7 +25,9 @@ const nextConfig = {
     return [
       {
         source: '/uploads/:path*',
-        destination: 'http://localhost/uploads/:path*',
+        destination: process.env.NODE_ENV === 'production' 
+          ? 'http://nginx/uploads/:path*'
+          : 'http://nginx/uploads/:path*', // Docker環境では常にnginxを使用
       },
     ]
   },

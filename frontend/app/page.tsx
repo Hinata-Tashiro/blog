@@ -67,9 +67,10 @@ async function fetchServerData(searchParams: { search?: string; category?: strin
   }
 }
 
-async function HomePage({ searchParams }: { searchParams: { search?: string; category?: string; tag?: string; page?: string } }) {
-  const page = parseInt(searchParams.page || '1');
-  const { postsData, categoriesData, tagsData } = await fetchServerData(searchParams);
+async function HomePage({ searchParams }: { searchParams: Promise<{ search?: string; category?: string; tag?: string; page?: string }> }) {
+  const params = await searchParams;
+  const page = parseInt(params.page || '1');
+  const { postsData, categoriesData, tagsData } = await fetchServerData(params);
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,7 +81,7 @@ async function HomePage({ searchParams }: { searchParams: { search?: string; cat
           <div className="lg:col-span-3">
             <div className="mb-8">
               <h1 className="text-3xl font-bold mb-2">
-                {searchParams.search ? `「${searchParams.search}」の検索結果` : '最新記事'}
+                {params.search ? `「${params.search}」の検索結果` : '最新記事'}
               </h1>
               <p className="text-muted-foreground">
                 {postsData.total}件の記事が見つかりました
@@ -124,7 +125,7 @@ async function HomePage({ searchParams }: { searchParams: { search?: string; cat
   );
 }
 
-export default function Home({ searchParams }: { searchParams: { search?: string; category?: string; tag?: string; page?: string } }) {
+export default function Home({ searchParams }: { searchParams: Promise<{ search?: string; category?: string; tag?: string; page?: string }> }) {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-background">

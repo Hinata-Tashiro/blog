@@ -57,7 +57,7 @@ export function PostCard({ post }: PostCardProps) {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/5">
-                <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
+                <ImageIcon className="h-12 w-12 text-muted-foreground/30" suppressHydrationWarning />
               </div>
             )}
             {/* カテゴリバッジをオーバーレイ */}
