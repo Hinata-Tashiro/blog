@@ -15,15 +15,12 @@ export const THUMBNAIL_SIZES = {
 export function getThumbnailUrl(filename: string, size: 'small' | 'medium' | 'large' = 'medium'): string {
   // 現時点ではサムネイル生成が既存画像に対して実行されていないため、
   // オリジナル画像を返す
-  // 開発環境ではNginx（ポート80）から画像を取得
-  const baseUrl = typeof window !== 'undefined' && window.location.port === '3000' 
-    ? 'http://localhost' 
-    : '';
-  return `${baseUrl}/uploads/images/${filename}`;
+  // 相対パスを使用してNginxから画像を取得
+  return `/uploads/images/${filename}`;
   
   // 将来的にサムネイルが生成されたら以下を使用
   // const basePath = '/uploads/images/thumbnails/';
   // const extension = filename.split('.').pop();
   // const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
-  // return `${baseUrl}${basePath}${nameWithoutExt}${THUMBNAIL_SIZES[size]}.${extension}`;
+  // return `${basePath}${nameWithoutExt}${THUMBNAIL_SIZES[size]}.${extension}`;
 }
