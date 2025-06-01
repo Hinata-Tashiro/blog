@@ -27,3 +27,7 @@ class TagInDB(TagBase):
 
 class Tag(TagInDB):
     pass
+
+
+class TagResponse(TagInDB):
+    pass

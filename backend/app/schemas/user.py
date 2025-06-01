@@ -31,6 +31,10 @@ class User(UserInDB):
     pass
 
 
+class UserResponse(UserInDB):
+    pass
+
+
 class UserLogin(BaseModel):
     username: str
     password: str

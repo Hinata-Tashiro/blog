@@ -27,3 +27,7 @@ class CategoryInDB(CategoryBase):
 
 class Category(CategoryInDB):
     pass
+
+
+class CategoryResponse(CategoryInDB):
+    pass

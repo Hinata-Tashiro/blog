@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuthStore } from "@/lib/auth-store";
-import { FileText, Tags, FolderOpen, LogOut, User, Image } from "lucide-react";
+import { FileText, Tags, FolderOpen, LogOut, User, Image, BarChart3 } from "lucide-react";
 
 export function AdminHeader() {
   const router = useRouter();
@@ -47,6 +47,12 @@ export function AdminHeader() {
               <Link href="/admin/images">
                 <Image className="mr-2 h-4 w-4" />
                 画像
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/admin/analytics">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                アナリティクス
               </Link>
             </Button>
           </nav>
