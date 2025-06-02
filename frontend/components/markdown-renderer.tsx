@@ -4,10 +4,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
-import { ComponentPropsWithoutRef, useState, useEffect } from 'react';
-import Image from 'next/image';
+import { ComponentPropsWithoutRef } from 'react';
 import Link from 'next/link';
-import { ImageLightbox } from './image-lightbox';
 
 interface MarkdownRendererProps {
   content: string;
@@ -15,33 +13,6 @@ interface MarkdownRendererProps {
 }
 
 export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxImages, setLightboxImages] = useState<Array<{ src: string; alt?: string }>>([]);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-
-  // Extract all images from content for lightbox
-  useEffect(() => {
-    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-    const images: Array<{ src: string; alt?: string }> = [];
-    let match;
-
-    while ((match = imageRegex.exec(content)) !== null) {
-      const alt = match[1];
-      const src = match[2];
-      const fullSrc = src.startsWith('http') ? src : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${src}`;
-      images.push({ src: fullSrc, alt });
-    }
-
-    setLightboxImages(images);
-  }, [content]);
-
-  const handleImageClick = (src: string) => {
-    const index = lightboxImages.findIndex(img => img.src === src);
-    if (index !== -1) {
-      setLightboxIndex(index);
-      setLightboxOpen(true);
-    }
-  };
 
   return (
     <>
@@ -81,15 +52,13 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
           if (!src) return null;
           
           // 相対パスの場合、APIのベースURLを追加
-          const imageSrc = src.startsWith('http') ? src : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${src}`;
+          const imageSrc = src.startsWith('http') ? src : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api'}${src}`;
           
           return (
-            <span className="block my-8 cursor-pointer" onClick={() => handleImageClick(imageSrc)}>
-              <Image
+            <span className="block my-8">
+              <img
                 src={imageSrc}
                 alt={alt || ''}
-                width={800}
-                height={600}
                 className="rounded-lg shadow-lg mx-auto hover:shadow-xl transition-shadow duration-200"
                 style={{ height: 'auto', maxWidth: '100%' }}
                 loading="lazy"
@@ -180,13 +149,6 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
     >
       {content}
     </ReactMarkdown>
-    
-    <ImageLightbox
-      isOpen={lightboxOpen}
-      onClose={() => setLightboxOpen(false)}
-      images={lightboxImages}
-      initialIndex={lightboxIndex}
-    />
     </>
   );
 }

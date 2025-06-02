@@ -5,6 +5,7 @@ from sqlalchemy import and_, or_
 from datetime import datetime
 from app.db.session import get_db
 from app.schemas.post import Post, PostList
+from typing import Dict
 from app.models import post as post_model
 from app.models.post import PostStatus
 from app.models.category import Category
@@ -87,23 +88,6 @@ def get_posts(
     )
 
 
-@router.get("/{slug}", response_model=Post)
-def get_post(slug: str, db: Session = Depends(get_db)):
-    post = db.query(post_model.Post).filter(
-        post_model.Post.slug == slug,
-        post_model.Post.status == PostStatus.PUBLISHED,
-        post_model.Post.published_at.isnot(None)
-    ).first()
-    
-    if not post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Post not found"
-        )
-    
-    return post
-
-
 @router.get("/search", response_model=List[Post])
 def search_posts(
     q: str = Query(..., min_length=2),
@@ -121,3 +105,85 @@ def search_posts(
     ).order_by(post_model.Post.published_at.desc()).limit(limit).all()
     
     return posts
+
+
+@router.get("/{slug}/related", response_model=Dict[str, List[Post]])
+def get_related_posts(
+    slug: str,
+    limit: int = Query(5, ge=1, le=20),
+    db: Session = Depends(get_db)
+):
+    # まず対象の記事を取得
+    post = db.query(post_model.Post).filter(
+        post_model.Post.slug == slug,
+        post_model.Post.status == PostStatus.PUBLISHED
+    ).first()
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Post not found"
+        )
+    
+    # カテゴリが同じ記事を取得
+    related_by_category = []
+    if post.categories:
+        category_ids = [cat.id for cat in post.categories]
+        related_by_category = db.query(post_model.Post).join(
+            post_model.Post.categories
+        ).filter(
+            and_(
+                Category.id.in_(category_ids),
+                post_model.Post.id != post.id,
+                post_model.Post.status == PostStatus.PUBLISHED,
+                post_model.Post.published_at.isnot(None)
+            )
+        ).order_by(post_model.Post.published_at.desc()).limit(limit).all()
+    
+    # タグが同じ記事を取得
+    related_by_tags = []
+    if post.tags:
+        tag_ids = [tag.id for tag in post.tags]
+        related_by_tags = db.query(post_model.Post).join(
+            post_model.Post.tags
+        ).filter(
+            and_(
+                Tag.id.in_(tag_ids),
+                post_model.Post.id != post.id,
+                post_model.Post.status == PostStatus.PUBLISHED,
+                post_model.Post.published_at.isnot(None)
+            )
+        ).order_by(post_model.Post.published_at.desc()).limit(limit).all()
+    
+    # 人気記事を取得（仮実装：最新記事）
+    popular_posts = db.query(post_model.Post).filter(
+        and_(
+            post_model.Post.id != post.id,
+            post_model.Post.status == PostStatus.PUBLISHED,
+            post_model.Post.published_at.isnot(None)
+        )
+    ).order_by(post_model.Post.published_at.desc()).limit(limit).all()
+    
+    # Pydanticスキーマに変換
+    return {
+        "related_by_category": [Post.from_orm(post) for post in related_by_category[:limit]],
+        "related_by_tags": [Post.from_orm(post) for post in related_by_tags[:limit]],
+        "popular": [Post.from_orm(post) for post in popular_posts[:limit]]
+    }
+
+
+@router.get("/{slug}", response_model=Post)
+def get_post(slug: str, db: Session = Depends(get_db)):
+    post = db.query(post_model.Post).filter(
+        post_model.Post.slug == slug,
+        post_model.Post.status == PostStatus.PUBLISHED,
+        post_model.Post.published_at.isnot(None)
+    ).first()
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Post not found"
+        )
+    
+    return post

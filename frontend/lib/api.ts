@@ -69,6 +69,10 @@ export const posts = {
     const response = await api.get('/posts/search', { params: { q, limit } });
     return response.data;
   },
+  getRelated: async (slug: string, limit?: number) => {
+    const response = await api.get(`/posts/${slug}/related`, { params: { limit } });
+    return response.data;
+  },
 };
 
 export const categories = {
