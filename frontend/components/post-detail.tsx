@@ -12,6 +12,8 @@ import { getImageUrl } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { useAnalytics } from "@/lib/hooks/use-analytics";
 import { usePathname } from "next/navigation";
+import { ReadingProgressBar } from "@/components/reading-progress-bar";
+import { calculateReadingTime, formatReadingTime } from "@/lib/utils/reading-time";
 
 interface Post {
   id: number;
@@ -39,6 +41,7 @@ interface PostDetailProps {
 export function PostDetail({ post }: PostDetailProps) {
   const [formattedDate, setFormattedDate] = useState<string>('');
   const pathname = usePathname();
+  const readingTime = calculateReadingTime(post.content);
   
   // アナリティクストラッキング
   useAnalytics({
@@ -59,6 +62,7 @@ export function PostDetail({ post }: PostDetailProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <ReadingProgressBar />
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
@@ -131,7 +135,7 @@ export function PostDetail({ post }: PostDetailProps) {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">読了時間:</span>
-                        <span className="font-medium">約{Math.ceil(post.content.trim().split(/\s+/).length / 400)}分</span>
+                        <span className="font-medium">{formatReadingTime(readingTime)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">文字数:</span>

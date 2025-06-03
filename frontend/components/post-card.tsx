@@ -3,14 +3,16 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, Image as ImageIcon } from 'lucide-react';
+import { Clock, User, Image as ImageIcon, BookOpen } from 'lucide-react';
 import { getThumbnailUrl } from '@/lib/config';
 import { useEffect, useState } from 'react';
+import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
 
 interface Post {
   id: number;
   title: string;
   slug: string;
+  content?: string;
   excerpt?: string;
   published_at: string;
   categories: Array<{ id: number; name: string; slug: string }>;
@@ -118,6 +120,12 @@ export function PostCard({ post }: PostCardProps) {
                 {formattedDate}
               </time>
             </div>
+            {post.content && (
+              <div className="flex items-center gap-1">
+                <BookOpen className="h-3 w-3" suppressHydrationWarning />
+                <span>{formatReadingTime(calculateReadingTime(post.content))}</span>
+              </div>
+            )}
           </div>
         </div>
         </div>
