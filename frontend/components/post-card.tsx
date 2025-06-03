@@ -74,14 +74,6 @@ export function PostCard({ post }: PostCardProps) {
           </div>
 
           <div className="p-6 space-y-4 flex-1 flex flex-col">
-          {/* カテゴリバッジ */}
-          {post.categories.length > 0 && (
-            <div className="flex gap-2">
-              <Badge variant="secondary" className="text-xs">
-                {post.categories[0].name}
-              </Badge>
-            </div>
-          )}
           
           {/* タイトル */}
           <h2 className="text-xl font-bold line-clamp-2 group-hover:text-primary transition-colors">

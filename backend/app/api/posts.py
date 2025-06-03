@@ -2,7 +2,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
-from datetime import datetime
+from datetime import datetime, date
 from app.db.session import get_db
 from app.schemas.post import Post, PostList
 from app.schemas.like import LikeResponse, LikeCreate
@@ -26,7 +26,13 @@ async def get_posts(
     category: Optional[str] = None,
     tag: Optional[str] = None,
     search: Optional[str] = None,
-    sort: Optional[str] = Query(None, regex="^(latest|popular)$"),
+    sort: Optional[str] = Query(None, regex="^(latest|popular|oldest)$"),
+    # 投稿日期間フィルター
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    # 文字数範囲フィルター
+    min_length: Optional[int] = Query(None, ge=0),
+    max_length: Optional[int] = Query(None, ge=0),
     db: Session = Depends(get_db)
 ):
     # Base query - only published posts
@@ -62,6 +68,18 @@ async def get_posts(
             post_model.Post.content.ilike(search_term)
         )
     
+    # 投稿日期間フィルター
+    if date_from:
+        query = query.filter(func.date(post_model.Post.published_at) >= date_from)
+    if date_to:
+        query = query.filter(func.date(post_model.Post.published_at) <= date_to)
+    
+    # 文字数範囲フィルター
+    if min_length is not None:
+        query = query.filter(func.length(post_model.Post.content) >= min_length)
+    if max_length is not None:
+        query = query.filter(func.length(post_model.Post.content) <= max_length)
+    
     # Get total count
     total = query.count()
     
@@ -70,6 +88,9 @@ async def get_posts(
         # 人気順（仮の実装：IDの降順）
         # TODO: 実際のPV数やいいね数でソート
         query = query.order_by(post_model.Post.id.desc())
+    elif sort == "oldest":
+        # 古い順
+        query = query.order_by(post_model.Post.published_at.asc())
     else:
         # デフォルト：最新順
         query = query.order_by(post_model.Post.published_at.desc())
