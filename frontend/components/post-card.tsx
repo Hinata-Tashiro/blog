@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, Image as ImageIcon, BookOpen } from 'lucide-react';
+import { Clock, User, Image as ImageIcon, BookOpen, Heart } from 'lucide-react';
 import { getThumbnailUrl } from '@/lib/config';
 import { useEffect, useState } from 'react';
 import { calculateReadingTime, formatReadingTime } from '@/lib/utils/reading-time';
@@ -25,6 +25,7 @@ interface Post {
     width?: number;
     height?: number;
   };
+  likes_count?: number;
 }
 
 interface PostCardProps {
@@ -124,6 +125,12 @@ export function PostCard({ post }: PostCardProps) {
               <div className="flex items-center gap-1">
                 <BookOpen className="h-3 w-3" suppressHydrationWarning />
                 <span>{formatReadingTime(calculateReadingTime(post.content))}</span>
+              </div>
+            )}
+            {post.likes_count !== undefined && (
+              <div className="flex items-center gap-1">
+                <Heart className="h-3 w-3" suppressHydrationWarning />
+                <span>{post.likes_count}</span>
               </div>
             )}
           </div>

@@ -48,6 +48,8 @@ class Post(PostInDB):
     categories: List[Category] = []
     tags: List[Tag] = []
     featured_image: Optional["Image"] = None
+    likes_count: int = 0
+    is_liked: bool = False
 
 
 class PostResponse(Post):

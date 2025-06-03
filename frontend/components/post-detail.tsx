@@ -14,6 +14,7 @@ import { useAnalytics } from "@/lib/hooks/use-analytics";
 import { usePathname } from "next/navigation";
 import { ReadingProgressBar } from "@/components/reading-progress-bar";
 import { calculateReadingTime, formatReadingTime } from "@/lib/utils/reading-time";
+import { PostActionBar } from "@/components/post-action-bar";
 
 interface Post {
   id: number;
@@ -32,6 +33,8 @@ interface Post {
     width?: number;
     height?: number;
   };
+  likes_count?: number;
+  is_liked?: boolean;
 }
 
 interface PostDetailProps {
@@ -77,9 +80,20 @@ export function PostDetail({ post }: PostDetailProps) {
             </Link>
           </Button>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:items-start">
-            {/* メインコンテンツ */}
-            <div className="lg:col-span-8">
+          <div className="flex gap-4">
+            {/* アクションバー（PC表示時のみ、左側） */}
+            <div className="hidden lg:block w-16 flex-shrink-0">
+              <PostActionBar
+                slug={post.slug}
+                title={post.title}
+                initialCount={post.likes_count || 0}
+              />
+            </div>
+
+            {/* メインコンテンツとサイドバーのコンテナ */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4">
+              {/* メインコンテンツ */}
+              <div className="lg:col-span-8">
               <article className="bg-card rounded-lg shadow-sm border overflow-hidden">
                 {/* アイキャッチ画像 */}
                 {post.featured_image && (
@@ -179,10 +193,20 @@ export function PostDetail({ post }: PostDetailProps) {
               </div>
             </div>
 
-            {/* サイドバー（PC表示時のみ） */}
-            <div className="hidden lg:block lg:col-span-4 relative">
-              <PostSidebar post={post} />
+              {/* サイドバー（PC表示時のみ） */}
+              <div className="hidden lg:block lg:col-span-4 relative">
+                <PostSidebar post={post} />
+              </div>
             </div>
+          </div>
+
+          {/* モバイル用フローティングアクションボタン */}
+          <div className="fixed bottom-6 right-6 lg:hidden z-50">
+            <PostActionBar
+              slug={post.slug}
+              title={post.title}
+              initialCount={post.likes_count || 0}
+            />
           </div>
         </div>
       </main>
