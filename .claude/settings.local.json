@@ -15,7 +15,12 @@
       "Bash(gh issue close:*)",
       "Bash(gh issue edit:*)",
       "Bash(docker-compose up:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker-compose build:*)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:hashnode.com)"
     ],
     "deny": []
   }

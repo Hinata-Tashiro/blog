@@ -78,7 +78,7 @@ export function SearchFilters({ searchQuery, selectedCategories = [], selectedTa
           {searchQuery && (
             <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
               <span className="text-sm font-medium">検索</span>
-              <span className="text-sm text-muted-foreground">"{searchQuery}"</span>
+              <span className="text-sm text-muted-foreground">&quot;{searchQuery}&quot;</span>
               <Button
                 variant="ghost"
                 size="sm"
