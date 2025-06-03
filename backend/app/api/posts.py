@@ -1,21 +1,23 @@
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 from datetime import datetime
 from app.db.session import get_db
 from app.schemas.post import Post, PostList
+from app.schemas.like import LikeResponse, LikeCreate
 from typing import Dict
 from app.models import post as post_model
 from app.models.post import PostStatus
 from app.models.category import Category
 from app.models.tag import Tag
+from app.models.like import Like
 
 router = APIRouter()
 
 
 @router.get("/", response_model=PostList)
-def get_posts(
+async def get_posts(
     page: int = Query(1, ge=1),
     per_page: int = Query(10, ge=1, le=100),
     categories: Optional[List[str]] = Query(None),
@@ -75,6 +77,11 @@ def get_posts(
     # Apply pagination
     offset = (page - 1) * per_page
     posts = query.offset(offset).limit(per_page).all()
+    
+    # Add likes count for each post
+    for post in posts:
+        post.likes_count = db.query(func.count(Like.id)).filter(Like.post_id == post.id).scalar()
+        post.is_liked = False  # Frontend will handle this
     
     # Calculate total pages
     pages = (total + per_page - 1) // per_page
@@ -173,7 +180,10 @@ def get_related_posts(
 
 
 @router.get("/{slug}", response_model=Post)
-def get_post(slug: str, db: Session = Depends(get_db)):
+async def get_post(
+    slug: str,
+    db: Session = Depends(get_db)
+):
     post = db.query(post_model.Post).filter(
         post_model.Post.slug == slug,
         post_model.Post.status == PostStatus.PUBLISHED,
@@ -186,4 +196,68 @@ def get_post(slug: str, db: Session = Depends(get_db)):
             detail="Post not found"
         )
     
+    # Add likes count
+    post.likes_count = db.query(func.count(Like.id)).filter(Like.post_id == post.id).scalar()
+    post.is_liked = False  # Frontend will handle this
+    
     return post
+
+
+@router.post("/{slug}/like", response_model=LikeResponse)
+async def add_like(
+    slug: str,
+    like_data: LikeCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    # Get the post
+    post = db.query(post_model.Post).filter(
+        post_model.Post.slug == slug,
+        post_model.Post.status == PostStatus.PUBLISHED
+    ).first()
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Post not found"
+        )
+    
+    # Get client IP address
+    client_ip = request.client.host if request.client else None
+    
+    # Always create a new like (no duplicate checking)
+    new_like = Like(
+        post_id=post.id,
+        session_id=like_data.session_id,
+        ip_address=client_ip
+    )
+    db.add(new_like)
+    db.commit()
+    
+    # Get updated likes count
+    likes_count = db.query(func.count(Like.id)).filter(Like.post_id == post.id).scalar()
+    
+    return LikeResponse(likes_count=likes_count)
+
+
+@router.get("/{slug}/likes", response_model=LikeResponse)
+async def get_post_likes(
+    slug: str,
+    db: Session = Depends(get_db)
+):
+    # Get the post
+    post = db.query(post_model.Post).filter(
+        post_model.Post.slug == slug,
+        post_model.Post.status == PostStatus.PUBLISHED
+    ).first()
+    
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Post not found"
+        )
+    
+    # Get likes count
+    likes_count = db.query(func.count(Like.id)).filter(Like.post_id == post.id).scalar()
+    
+    return LikeResponse(likes_count=likes_count)

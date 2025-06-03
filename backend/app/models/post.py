@@ -46,3 +46,4 @@ class Post(Base):
     categories = relationship("Category", secondary=post_categories, back_populates="posts")
     tags = relationship("Tag", secondary=post_tags, back_populates="posts")
     featured_image = relationship("Image", foreign_keys=[featured_image_id])
+    likes = relationship("Like", back_populates="post", cascade="all, delete-orphan")

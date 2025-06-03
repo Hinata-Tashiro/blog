@@ -241,3 +241,17 @@ export const analytics = {
     },
   },
 };
+
+// Likes API
+export const likes = {
+  toggle: async (slug: string, sessionId?: string) => {
+    const response = await api.post(`/posts/${slug}/like`, {
+      session_id: sessionId
+    });
+    return response.data;
+  },
+  get: async (slug: string) => {
+    const response = await api.get(`/posts/${slug}/likes`);
+    return response.data;
+  },
+};
