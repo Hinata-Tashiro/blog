@@ -111,6 +111,13 @@ export const admin = {
       const response = await api.delete(`/admin/posts/${id}`);
       return response.data;
     },
+    bulk: async (postIds: number[], operation: 'delete' | 'publish' | 'unpublish') => {
+      const response = await api.post('/admin/posts/bulk', {
+        post_ids: postIds,
+        operation: operation
+      });
+      return response.data;
+    },
   },
   categories: {
     list: async () => {
