@@ -3,6 +3,7 @@ from datetime import datetime
 import io
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from app.db.session import get_db
 from app.api.deps import get_current_user
 from app.schemas.post import Post, PostCreate, PostUpdate, PostList
@@ -14,6 +15,17 @@ from app.models.post import PostStatus
 import os
 import uuid
 from PIL import Image as PILImage
+
+
+class BulkPostOperation(BaseModel):
+    post_ids: List[int]
+    operation: str  # "delete", "publish", "unpublish"
+
+
+class BulkOperationResponse(BaseModel):
+    success_count: int
+    error_count: int
+    errors: List[str]
 
 router = APIRouter()
 
@@ -178,6 +190,58 @@ def delete_post(
     db.commit()
     
     return {"message": "Post deleted successfully"}
+
+
+@router.post("/posts/bulk", response_model=BulkOperationResponse)
+def bulk_post_operation(
+    operation: BulkPostOperation,
+    current_user: user_model.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    success_count = 0
+    error_count = 0
+    errors = []
+    
+    for post_id in operation.post_ids:
+        try:
+            post = db.query(post_model.Post).filter(
+                post_model.Post.id == post_id
+            ).first()
+            
+            if not post:
+                errors.append(f"Post {post_id} not found")
+                error_count += 1
+                continue
+            
+            if operation.operation == "delete":
+                db.delete(post)
+                success_count += 1
+            elif operation.operation == "publish":
+                post.status = PostStatus.PUBLISHED
+                if not post.published_at:
+                    post.published_at = datetime.utcnow()
+                success_count += 1
+            elif operation.operation == "unpublish":
+                post.status = PostStatus.DRAFT
+                post.published_at = None
+                success_count += 1
+            else:
+                errors.append(f"Invalid operation: {operation.operation}")
+                error_count += 1
+                continue
+                
+        except Exception as e:
+            errors.append(f"Error processing post {post_id}: {str(e)}")
+            error_count += 1
+    
+    if success_count > 0:
+        db.commit()
+    
+    return BulkOperationResponse(
+        success_count=success_count,
+        error_count=error_count,
+        errors=errors
+    )
 
 
 # Categories
